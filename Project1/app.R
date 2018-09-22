@@ -193,4 +193,29 @@ server <- function(input, output, session = session) {
         guides(color = FALSE)
       , tooltip = "text")
   })
+  # Plot 3 - Location of Crimes
+  output$plot_loc <- renderPlotly({
+    dat <- locInput()
+    ggplotly(
+      ggplot(data = dat, aes(x = reorder(locType, n), y = as.numeric(n)),
+             text = paste0("<b>", locType, ":</b> ")) + 
+        geom_bar(stat = "identity") + coord_flip() +
+        labs(x = NULL,
+             y = "Number of Reports",
+             title = "Most Frequent Locations of Crimes") +
+        theme(plot.title = element_text(family = 'Helvetica',  
+                                        color = '#181414', 
+                                        face = 'bold', 
+                                        size = 18, 
+                                        hjust = 0)) +
+        theme(axis.title.x = element_text(family = 'Helvetica', 
+                                          color = '#181414', 
+                                          face = 'bold', 
+                                          size = 12, 
+                                          hjust = 0)) +
+        theme(legend.title=element_blank(),
+              axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1)) +  # tilts x-axis labels
+        guides(color = FALSE)
+      , tooltip = "text")
+  })
   
