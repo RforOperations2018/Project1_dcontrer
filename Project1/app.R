@@ -167,4 +167,30 @@ server <- function(input, output, session = session) {
         guides(color = FALSE)
       , tooltip = "text")
   })
+  # Plot 2 - Percent arrests by Crime
+  output$plot_line <- renderPlotly({
+    dat <- mcInput()
+    ggplotly(
+      ggplot(data = dat, aes(x = type, y = freq*100, fill = arrest, 
+                             text = paste0("<b>", type, "</b> ",  # information parameters for pop-up boxes
+                                           "<br>Percent: ", round(freq, digits = 2)*100))) +
+        geom_bar(stat = "identity") +
+        labs(x = NULL,
+             y = "Proportion of Total",
+             title = "Proportion of Crimes That Led to an Arrest") +
+        theme(plot.title = element_text(family = 'Helvetica',  
+                                        color = '#181414', 
+                                        face = 'bold', 
+                                        size = 18, 
+                                        hjust = 0)) +
+        theme(axis.title.y = element_text(family = 'Helvetica', 
+                                          color = '#181414', 
+                                          face = 'bold', 
+                                          size = 12, 
+                                          hjust = 0)) +
+        theme(legend.position = "none") + 
+        theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1)) +  # tilts x-axis labels
+        guides(color = FALSE)
+      , tooltip = "text")
+  })
   
