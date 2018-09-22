@@ -89,11 +89,12 @@ body <- dashboardBody(tabItems(
                    tabPanel("Percent Arrests by Crime",
                             HTML("<p><em>The graph below shows arrest rates for a reported crime for the time period selected. 
                                  The proportion of all crimes that resulted in arrests are shown 
-                                 in light blue and non-arrests in dark blue.&nbsp;</em></p>"), 
+                                 in light blue and non-arrests in dark blue.&nbsp;</em></p>"),
                             plotlyOutput("plot_line")),
                    # Layout and description of tab 3
                    tabPanel("Location of Crimes",
-                            HTML("<p><em>The graph below shows the 10 most frequent locations of the crimes selected (agregated) for the time period selected.&nbsp;</em></p>"),
+                            HTML("<p><em>The graph below shows the 10 most frequent locations of the crime(s) selected for the time period selected. </p>
+                                 <p>*Note that this chart is most informative when only 1 crime is selected.&nbsp;</em></p>"),
                             plotlyOutput("plot_loc")))
             )
             ),
@@ -172,8 +173,10 @@ server <- function(input, output, session = session) {
     dat <- mcInput()
     ggplotly(
       ggplot(data = dat, aes(x = type, y = freq*100, fill = reorder(arrest, arrest), 
-                             text = paste0("<b>", type, "</b> ",  # information parameters for pop-up boxes
-                                           "<br>Percent: ", round(freq, digits = 2)*100))) +
+                             text = paste0("<b>", type, "</b> ",
+                                           "<br>Total Crimes:", n, "</b> ",
+                                           ifelse(dat$arrest == 1, "<br>Percent Arrest: ", "<br>Percent No Arrest: "),
+                                           round(freq, digits = 2)*100))) +
         geom_bar(stat = "identity") +
         labs(x = NULL,
              y = "Proportion of Total",
@@ -197,8 +200,9 @@ server <- function(input, output, session = session) {
   output$plot_loc <- renderPlotly({
     dat <- locInput()
     ggplotly(
-      ggplot(data = dat, aes(x = reorder(locType, n), y = as.numeric(n)),
-             text = paste0("<b>", locType, ":</b> ")) + 
+      ggplot(data = dat, aes(x = reorder(locType, n), y = as.numeric(n),
+             text = paste0("<b>", locType, "</b> ",
+                           "<br>Crimes:", n, "</b>"))) + 
         geom_bar(stat = "identity") + coord_flip() +
         labs(x = NULL,
              y = "Number of Reports",
@@ -213,8 +217,7 @@ server <- function(input, output, session = session) {
                                           face = 'bold', 
                                           size = 12, 
                                           hjust = 0)) +
-        theme(legend.title=element_blank(),
-              axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1)) +  # tilts x-axis labels
+        theme(legend.title=element_blank()) +  # tilts x-axis labels
         guides(color = FALSE)
       , tooltip = "text")
   })
