@@ -70,3 +70,41 @@ sidebar <- dashboardSidebar(
     actionButton("reset", "Reset Filters", icon = icon("refresh")) 
   )
 )
+# tab layout for plots
+body <- dashboardBody(tabItems(
+  tabItem("plot",
+          # Name tabs
+          fluidRow(
+            valueBoxOutput("totalCrimes"),
+            valueBoxOutput("pctSolved"),
+            valueBoxOutput("mostCommon")
+          ),
+          fluidRow(
+            tabBox(width = 12,
+                   # Layout and description of tab 1
+                   tabPanel("Crimes by Frequency", 
+                            HTML("<p><em>The graph below shows the frequency of a reported crime for the timeframe selected.&nbsp;</em></p>"),
+                            plotlyOutput("plot_total")),
+                   # Layout and description of tab 2
+                   tabPanel("Percent Arrests by Crime",
+                            HTML("<p><em>The graph below shows arrest rates for a reported crime for the time period selected. 
+                                 The proportion of all crimes that resulted in arrests are shown 
+                                 in light blue and non-arrests in dark blue.&nbsp;</em></p>"), 
+                            plotlyOutput("plot_line")),
+                   # Layout and description of tab 3
+                   tabPanel("Location of Crimes",
+                            HTML("<p><em>The graph below shows the 10 most frequent locations of the crimes selected (agregated) for the time period selected.&nbsp;</em></p>"),
+                            plotlyOutput("plot_loc")))
+            )
+            ),
+  # Layout of table
+  tabItem("table",
+          inputPanel(
+            downloadButton("downloadData","Download Crime Data") # add button to download table as csv
+          ),
+          fluidPage(
+            box(title = "Selected Crime Stats", DT::dataTableOutput("table"), width = 12))
+  )
+  )
+  )
+ui <- dashboardPage(header, sidebar, body)
