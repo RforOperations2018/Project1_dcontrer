@@ -218,4 +218,34 @@ server <- function(input, output, session = session) {
         guides(color = FALSE)
       , tooltip = "text")
   })
+  # Downloadable crime datatable
+  output$table <- DT::renderDataTable({
+    subset(crimeInput(), select = colnames(crimeInput()))
+  })
+  # Total crimes infobox
+  output$totalCrimes <- renderValueBox({
+    cr <- crimeInput()
+    num <- nrow(cr)
+    valueBox(subtitle = "Total crimes during this timeframe", value = num, icon = icon("balance-scale"), color = "red")
+  })
+  # Percent arrests infobox
+  output$pctSolved <- renderValueBox({
+    cr <- crimeInput()
+    num <- round(mean(cr$arrest), digits = 2)*100
+    valueBox(subtitle = "Percent resulted in arrests", value = num, icon = icon("lock"), color = "blue")
+  })
+  # Most common crime infobox
+  output$mostCommon <- renderValueBox({
+    cr <- crimeInput()
+    name <- names(sort(table(cr$type), decreasing = TRUE)[1])
+    valueBox(subtitle = "Was the most common crime", value = name, icon = icon("fa fa-user-circle-o"), color = "green")
+  })
+  # URL bar update
+  observe({
+    print(reactiveValuesToList(input))
+    session$doBookmark()
+  })
+  onBookmarked(function(url) {
+    updateQueryString(url)
+  })
   
