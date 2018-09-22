@@ -108,3 +108,63 @@ body <- dashboardBody(tabItems(
   )
   )
 ui <- dashboardPage(header, sidebar, body)
+# Define server logic
+server <- function(input, output, session = session) {
+  crimeInput <- reactive({
+    crimeReac <- crime %>%
+      # Date Filter
+      filter(date >= input$dateSelect[1] & date <= input$dateSelect[2])
+    # Domestic Filter
+    if(input$domSelect == "Yes") {
+      crimeReac <- subset(crimeReac, domestic == 1)
+    }
+    # Crime Filter
+    if (length(input$crimeSelect) > 0 ) {
+      crimeReac <- subset(crimeReac, type %in% input$crimeSelect)
+    }
+    # Time of day filter
+    if (input$timeSelect != "all") {
+      crimeReac <- subset(crimeReac, timeDay %in% input$timeSelect)
+    }
+    return(crimeReac)
+  })
+  # Reactive data for plot 2
+  mcInput <- reactive({
+    crimeInput() %>% 
+      count(type, arrest) %>%
+      group_by(type) %>%
+      mutate(freq = n / sum(n))
+  })
+  # Reactive data for plot 3
+  locInput <- reactive({
+    crimeInput() %>% 
+      group_by(locType) %>%
+      tally() %>%
+      top_n(10)
+  })
+  # Plot 1 - Crimes by Frequency
+  output$plot_total <- renderPlotly({
+    dat <- crimeInput()
+    ggplotly(
+      ggplot(data = dat, aes(x = type, fill = type,
+                             text = paste0("<b>", type, ":</b> "))) + 
+        geom_histogram(stat = "count") +
+        labs(y = "Count",
+             title = "Number of Reports by Crime Type",
+             x = NULL) +
+        theme(plot.title = element_text(family = 'Helvetica',  
+                                        color = '#181414', 
+                                        face = 'bold', 
+                                        size = 18, 
+                                        hjust = 0)) +
+        theme(axis.title.y = element_text(family = 'Helvetica', 
+                                          color = '#181414', 
+                                          face = 'bold', 
+                                          size = 12, 
+                                          hjust = 0)) +
+        theme(legend.position = "none") +
+        theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1)) + 
+        guides(color = FALSE)
+      , tooltip = "text")
+  })
+  
