@@ -171,7 +171,7 @@ server <- function(input, output, session = session) {
   output$plot_line <- renderPlotly({
     dat <- mcInput()
     ggplotly(
-      ggplot(data = dat, aes(x = type, y = freq*100, fill = arrest, 
+      ggplot(data = dat, aes(x = type, y = freq*100, fill = reorder(arrest, arrest), 
                              text = paste0("<b>", type, "</b> ",  # information parameters for pop-up boxes
                                            "<br>Percent: ", round(freq, digits = 2)*100))) +
         geom_bar(stat = "identity") +
