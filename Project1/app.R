@@ -248,4 +248,25 @@ server <- function(input, output, session = session) {
   onBookmarked(function(url) {
     updateQueryString(url)
   })
-  
+  # Make data downloadable and set default download name
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste("crime-data-", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      write.csv(crimeInput(), file)
+    }
+  )
+  # Reset Filter Data
+  observeEvent(input$reset, {
+    updateSelectInput(session, "crimeSelect", selected = c(""))
+    updateSelectInput(session, "timeSelect", selected = "all")
+    updateSelectInput(session, "domSelect", selected = "No")
+    updateDateRangeInput(session, "dateSelect", start = min(crime$date), end = max(crime$date)
+    )
+    showNotification("You reset the filters. Gooooood Job", 
+                     type = "message", 
+                     duration = 3, 
+                     closeButton = F)
+  })
+}
