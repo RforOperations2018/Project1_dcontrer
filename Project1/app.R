@@ -270,3 +270,5 @@ server <- function(input, output, session = session) {
                      closeButton = F)
   })
 }
+# Run the application 
+shinyApp(ui = ui, server = server)
