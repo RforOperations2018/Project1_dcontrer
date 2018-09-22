@@ -40,8 +40,8 @@ header <- dashboardHeader(title = "Chicago Crime Stats",
 sidebar <- dashboardSidebar(
   sidebarMenu( # toggle between plots and downloadable table
     id = "tabs",
-    menuItem("Plots", icon = icon("bar-chart"), tabName = "plot"),
-    menuItem("Table", icon = icon("table"), tabName = "table"),
+    menuItem("Crime Plots", icon = icon("bar-chart"), tabName = "plot"),
+    menuItem("Download Data", icon = icon("download"), tabName = "table"),
     # Crime select
     selectizeInput("crimeSelect", 
                    "Crimes:", 
@@ -148,7 +148,7 @@ server <- function(input, output, session = session) {
     dat <- crimeInput()
     ggplotly(
       ggplot(data = dat, aes(x = type, fill = type,
-                             text = paste0("<b>", type, ":</b> "))) + 
+                             text = paste0("<b>Total Crimes: ", ..count.., "</b>"))) + 
         geom_histogram(stat = "count") +
         labs(y = "Count",
              title = "Number of Reports by Crime Type",
@@ -174,7 +174,7 @@ server <- function(input, output, session = session) {
     ggplotly(
       ggplot(data = dat, aes(x = type, y = freq*100, fill = reorder(arrest, arrest), 
                              text = paste0("<b>", type, "</b> ",
-                                           "<br>Total Crimes:", n, "</b> ",
+                                           "<br>Total Crimes: ", n, "</b> ",
                                            ifelse(dat$arrest == 1, "<br>Percent Arrest: ", "<br>Percent No Arrest: "),
                                            round(freq, digits = 2)*100))) +
         geom_bar(stat = "identity") +
@@ -202,7 +202,7 @@ server <- function(input, output, session = session) {
     ggplotly(
       ggplot(data = dat, aes(x = reorder(locType, n), y = as.numeric(n),
              text = paste0("<b>", locType, "</b> ",
-                           "<br>Crimes:", n, "</b>"))) + 
+                           "<br>Crimes: ", n, "</b>"))) + 
         geom_bar(stat = "identity") + coord_flip() +
         labs(x = NULL,
              y = "Number of Reports",

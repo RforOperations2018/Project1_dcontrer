@@ -1,0 +1,12 @@
+name: Project1
+title: Project1
+username:
+account: dcontreras12
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 463713
+bundleId: 1600043
+url: https://dcontreras12.shinyapps.io/Project1/
+when: 1537652695.49666
+asMultiple: FALSE
+asStatic: FALSE
