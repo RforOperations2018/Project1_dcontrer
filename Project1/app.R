@@ -13,6 +13,7 @@ library(lubridate)
 library(shinyWidgets)
 
 # read in data
+# Just fyi, you can keep the csv in your app folder and upload it to shinyapps.io
 crime <- read.csv("http://www.sharecsv.com/dl/d4ece4993a52b02efb08a5ac800123f2/chicagoCrime.csv", header = T, sep = ",")
 crime <- select(crime, PRIMARY.DESCRIPTION, LOCATION.DESCRIPTION, ARREST, DOMESTIC, DATE..OF.OCCURRENCE)
 colnames(crime) <- c("type", "locType", "arrest", "domestic", "date")
@@ -42,6 +43,7 @@ sidebar <- dashboardSidebar(
     id = "tabs",
     menuItem("Crime Plots", icon = icon("bar-chart"), tabName = "plot"),
     menuItem("Download Data", icon = icon("download"), tabName = "table"),
+    # Where is the third page?!
     # Crime select
     selectizeInput("crimeSelect", 
                    "Crimes:", 
@@ -130,6 +132,7 @@ server <- function(input, output, session = session) {
     return(crimeReac)
   })
   # Reactive data for plot 2
+  # The melting and stuff doesn't really have to be done in a reactive function if you're only using it once.
   mcInput <- reactive({
     crimeInput() %>% 
       count(type, arrest) %>%
@@ -171,6 +174,7 @@ server <- function(input, output, session = session) {
   # Plot 2 - Percent arrests by Crime
   output$plot_line <- renderPlotly({
     dat <- mcInput()
+    # Melting and everything can go here. No points off, just telling you
     ggplotly(
       ggplot(data = dat, aes(x = type, y = freq*100, fill = reorder(arrest, arrest), 
                              text = paste0("<b>", type, "</b> ",
