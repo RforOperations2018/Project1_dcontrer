@@ -1,7 +1,7 @@
-# Assignment: Project 1
+# Assignment: HW4
 # Class: R Shiny for Operations Management
 # Author: Dominic Contreras
-# Date: September 21, 2018
+# Date: October 4, 2018
 
 library(shiny)
 library(shinydashboard)
@@ -11,9 +11,22 @@ library(plotly)
 library(shinythemes)
 library(lubridate)
 library(shinyWidgets)
+library(RSocrata)
+
+# read in app token
+token <- "b8jsLEt63CZq5qAV4bvMXsqLi"
+selectDat <- read.socrata("https://data.cityofchicago.org/resource/3uz7-d32j.json?$select=_primary_decsription, date_of_occurrence",
+                          app_token = token)
+
+# generate unique list of crimes for use in input selectors
+crimes <- as.character(unique(selectDat$X_primary_decsription))
+
+# generate min and max dates for date range selector input
+dateMin <- range(selectDat$date_of_occurrence, na.rm = T)[1]
+dateMax <- range(selectDat$date_of_occurrence, na.rm = T)[2]
+remove(selectDat)
 
 # read in data
-# Just fyi, you can keep the csv in your app folder and upload it to shinyapps.io
 crime <- read.csv("http://www.sharecsv.com/dl/d4ece4993a52b02efb08a5ac800123f2/chicagoCrime.csv", header = T, sep = ",")
 crime <- select(crime, PRIMARY.DESCRIPTION, LOCATION.DESCRIPTION, ARREST, DOMESTIC, DATE..OF.OCCURRENCE)
 colnames(crime) <- c("type", "locType", "arrest", "domestic", "date")
@@ -37,23 +50,26 @@ header <- dashboardHeader(title = "Chicago Crime Stats",
                                                         icon = icon("fa fa-exclamation-triangle"))
                           )
 )
+
 # side bar layout 
 sidebar <- dashboardSidebar(
   sidebarMenu( # toggle between plots and downloadable table
     id = "tabs",
     menuItem("Crime Plots", icon = icon("bar-chart"), tabName = "plot"),
+    menuItem("Location Data", icon = icon("location-arrow"), tabName = "loc"),
     menuItem("Download Data", icon = icon("download"), tabName = "table"),
-    # Where is the third page?!
     # Crime select
     selectizeInput("crimeSelect", 
                    "Crimes:", 
-                   choices = sort(unique(crime$type)), 
+                   choices = sort(crimes), 
                    multiple = TRUE,
-                   options = list(placeholder = 'Select crime(s)')),
+                   selected = crimes[1:5],
+                   options = list(placeholder = 'Select crime(s)',
+                                  maxItems = 4)),
     # Domestic incidents (y/n)
     selectizeInput("domSelect", 
                    "Limit to Domestic Incidents?", 
-                   choices = c("Yes", "No"), 
+                   choices = c("Y", "N"), 
                    multiple = FALSE,
                    selected = "No"),
     # Time of day
@@ -64,9 +80,9 @@ sidebar <- dashboardSidebar(
     # Date range
     dateRangeInput("dateSelect",
                    "Date Range:", 
-                   start = min(crime$date), end = max(crime$date), 
-                   min = min(crime$date), max = max(crime$date), 
-                   format = "yyyy-mm-dd", startview = "month", weekstart = 0,
+                   start = dateMin, end = dateMax, 
+                   min = dateMin, max = dateMax, 
+                   format = "mm-dd-yyyy", startview = "month", weekstart = 0,
                    language = "en", separator = " to ", width = NULL),
     # Action button to reset filters, keeping original icon b/c works well
     actionButton("reset", "Reset Filters", icon = icon("refresh")) 
@@ -92,7 +108,12 @@ body <- dashboardBody(tabItems(
                             HTML("<p><em>The graph below shows arrest rates for a reported crime for the time period selected. 
                                  The proportion of all crimes that resulted in arrests are shown 
                                  in light blue and non-arrests in dark blue.&nbsp;</em></p>"),
-                            plotlyOutput("plot_line")),
+                            plotlyOutput("plot_line")))
+            )
+                   ),
+  tabItem("loc",
+          fluidRow(
+            tabBox(width = 12, height = "800px",
                    # Layout and description of tab 3
                    tabPanel("Location of Crimes",
                             HTML("<p><em>The graph below shows the 10 most frequent locations of the crime(s) selected for the time period selected. </p>
@@ -109,27 +130,14 @@ body <- dashboardBody(tabItems(
             box(title = "Selected Crime Stats", DT::dataTableOutput("table"), width = 12))
   )
   )
-  )
+            )
 ui <- dashboardPage(header, sidebar, body)
 # Define server logic
 server <- function(input, output, session = session) {
   crimeInput <- reactive({
-    crimeReac <- crime %>%
-      # Date Filter
-      filter(date >= input$dateSelect[1] & date <= input$dateSelect[2])
-    # Domestic Filter
-    if(input$domSelect == "Yes") {
-      crimeReac <- subset(crimeReac, domestic == 1)
-    }
-    # Crime Filter
-    if (length(input$crimeSelect) > 0 ) {
-      crimeReac <- subset(crimeReac, type %in% input$crimeSelect)
-    }
-    # Time of day filter
-    if (input$timeSelect != "all") {
-      crimeReac <- subset(crimeReac, timeDay %in% input$timeSelect)
-    }
-    return(crimeReac)
+    crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/3uz7-d32j.json?$where=date_of_occurrence between '2017-10-10T12:00:00' and '2018-01-10T14:00:00'&_primary_decsription=", input$crimeSelect, "&ARREST=Y&DOMESTIC=", input$domSelect), 
+                          app_token = token)
+    return(crime)
   })
   # Reactive data for plot 2
   # The melting and stuff doesn't really have to be done in a reactive function if you're only using it once.
@@ -142,7 +150,7 @@ server <- function(input, output, session = session) {
   # Reactive data for plot 3
   locInput <- reactive({
     crimeInput() %>% 
-      group_by(locType) %>%
+      group_by(type, locType) %>%
       tally() %>%
       top_n(10)
   })
@@ -205,9 +213,11 @@ server <- function(input, output, session = session) {
     dat <- locInput()
     ggplotly(
       ggplot(data = dat, aes(x = reorder(locType, n), y = as.numeric(n),
-             text = paste0("<b>", locType, "</b> ",
-                           "<br>Crimes: ", n, "</b>"))) + 
-        geom_bar(stat = "identity") + coord_flip() +
+                             text = paste0("<b>", locType, "</b> ",
+                                           "<br>Crimes: ", n, "</b>"))) + 
+        geom_bar(stat = "identity") + 
+        coord_flip() +
+        facet_wrap(~type, ncol = 1, scales = "free") +
         labs(x = NULL,
              y = "Number of Reports",
              title = "Most Frequent Locations of Crimes") +
