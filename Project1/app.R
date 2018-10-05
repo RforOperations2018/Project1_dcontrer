@@ -199,10 +199,16 @@ server <- function(input, output, session = session) {
         guides(color = FALSE)
       , tooltip = "text")
   })
+  
   # Plot 2 - Percent arrests by Crime
   output$plot_line <- renderPlotly({
+    mcInput <- reactive({
+      crimeInput() %>% 
+        count(type, arrest) %>%
+        group_by(type) %>%
+        mutate(freq = n / sum(n))
+    })
     dat <- mcInput()
-    # Melting and everything can go here. No points off, just telling you
     ggplotly(
       ggplot(data = dat, aes(x = type, y = freq*100, fill = reorder(arrest, arrest), 
                              text = paste0("<b>", type, "</b> ",
@@ -224,10 +230,11 @@ server <- function(input, output, session = session) {
                                           size = 12, 
                                           hjust = 0)) +
         theme(legend.position = "none") + 
-        theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1)) +  # tilts x-axis labels
+        theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1)) +
         guides(color = FALSE)
       , tooltip = "text")
   })
+  
   # Plot 3 - Location of Crimes
   output$plot_loc <- renderPlotly({
     dat <- locInput()
