@@ -20,8 +20,29 @@ selectDat <- read.socrata("https://data.cityofchicago.org/resource/3uz7-d32j.jso
 
 # generate unique list of crimes for use in input selectors
 crimes <- as.character(unique(selectDat$X_primary_decsription))
+
+# generate min and max dates for date range selector input
+dateMin <- range(selectDat$date_of_occurrence, na.rm = T)[1]
+dateMax <- range(selectDat$date_of_occurrence, na.rm = T)[2]
 remove(selectDat)
 
+# read in data
+crime <- read.csv("http://www.sharecsv.com/dl/d4ece4993a52b02efb08a5ac800123f2/chicagoCrime.csv", header = T, sep = ",")
+crime <- select(crime, PRIMARY.DESCRIPTION, LOCATION.DESCRIPTION, ARREST, DOMESTIC, DATE..OF.OCCURRENCE)
+colnames(crime) <- c("type", "locType", "arrest", "domestic", "date")
+# format time and date columns
+crime$time <- format(as.POSIXct(strptime(crime$date,"%m/%d/%Y %H:%M",tz="")) ,format = "%H:%M")
+crime$date <- mdy(format(as.POSIXct(strptime(crime$date,"%m/%d/%Y %H:%M",tz="")) ,format = "%m/%d/%y"))
+# create time of day column
+crime$timeDay <- as.factor(ifelse(crime$time > "04:59:00" & crime$time <= "11:59:00", "morning",
+                                  ifelse(crime$time > "11:59:00" & crime$time <= "16:59:00", "afternoon",
+                                         ifelse(crime$time > "16:59:00" & crime$time <= "21:59:00", "evening", "night"))))
+# clean data
+crime$type <- as.factor(tolower(crime$type))
+crime$locType <- as.factor(tolower(crime$locType))
+crime$arrest <- ifelse(crime$arrest == "Y", 1, 0)
+crime$domestic <- ifelse(crime$domestic == "Y", 1, 0)
+pdf(NULL)
 # title + data source notification
 header <- dashboardHeader(title = "Chicago Crime Stats",
                           dropdownMenu(type = "notifications",
@@ -37,45 +58,40 @@ sidebar <- dashboardSidebar(
     menuItem("Crime Plots", icon = icon("bar-chart"), tabName = "plot"),
     menuItem("Location Data", icon = icon("location-arrow"), tabName = "loc"),
     menuItem("Download Data", icon = icon("download"), tabName = "table"),
-    
     # Crime select
     selectizeInput("crimeSelect", 
                    "Crimes:", 
                    choices = sort(crimes), 
                    multiple = TRUE,
-                   options = list(placeholder = 'Select crime(s)')),
-    
+                   selected = crimes[1:5],
+                   options = list(placeholder = 'Select crime(s)',
+                                  maxItems = 4)),
     # Domestic incidents (y/n)
     selectizeInput("domSelect", 
                    "Limit to Domestic Incidents?", 
-                   choices = c("TRUE", "FALSE"), 
+                   choices = c("Y", "N"), 
                    multiple = FALSE,
-                   selected = "TRUE"),
-    
+                   selected = "No"),
     # Time of day
     radioButtons("timeSelect", 
                  "Time of Day:",
                  choices = c("morning", "afternoon", "evening", "night", "all"),
                  selected = "all"),
-    
     # Date range
     dateRangeInput("dateSelect",
                    "Date Range:", 
-                   start = Sys.Date()-365, end = Sys.Date()-335, 
-                   min = "2001-01-01", max = Sys.Date()-7, 
-                   format = "yyyy-mm-dd", startview = "month", weekstart = 0,
+                   start = dateMin, end = dateMax, 
+                   min = dateMin, max = dateMax, 
+                   format = "mm-dd-yyyy", startview = "month", weekstart = 0,
                    language = "en", separator = " to ", width = NULL),
-    
     # Action button to reset filters, keeping original icon b/c works well
     actionButton("reset", "Reset Filters", icon = icon("refresh")) 
   )
 )
-
 # tab layout for plots
 body <- dashboardBody(tabItems(
   tabItem("plot",
           # Name tabs
-          
           fluidRow(
             valueBoxOutput("totalCrimes"),
             valueBoxOutput("pctSolved"),
@@ -83,12 +99,10 @@ body <- dashboardBody(tabItems(
           ),
           fluidRow(
             tabBox(width = 12,
-                   
                    # Layout and description of tab 1
                    tabPanel("Crimes by Frequency", 
                             HTML("<p><em>The graph below shows the frequency of a reported crime for the timeframe selected.&nbsp;</em></p>"),
                             plotlyOutput("plot_total")),
-                   
                    # Layout and description of tab 2
                    tabPanel("Percent Arrests by Crime",
                             HTML("<p><em>The graph below shows arrest rates for a reported crime for the time period selected. 
@@ -100,7 +114,6 @@ body <- dashboardBody(tabItems(
   tabItem("loc",
           fluidRow(
             tabBox(width = 12, height = "800px",
-                   
                    # Layout and description of tab 3
                    tabPanel("Location of Crimes",
                             HTML("<p><em>The graph below shows the 10 most frequent locations of the crime(s) selected for the time period selected. </p>
@@ -108,7 +121,6 @@ body <- dashboardBody(tabItems(
                             plotlyOutput("plot_loc")))
             )
             ),
-  
   # Layout of table
   tabItem("table",
           inputPanel(
@@ -120,48 +132,11 @@ body <- dashboardBody(tabItems(
   )
             )
 ui <- dashboardPage(header, sidebar, body)
-
 # Define server logic
 server <- function(input, output, session = session) {
   crimeInput <- reactive({
-    
-    # When no crimes selected
-    if (length(input$crimeSelect) == 0 ) {
-      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/c4ep-ee5m.json?$where=date >= '", input$dateSelect[1], "T00:00:00' AND date <= '", input$dateSelect[2], "T23:59:59' AND domestic = '", input$domSelect, "'"), 
-                            app_token = token)
-      
-      # When one crime selected
-    } else if (length(input$crimeSelect) == 1) {
-      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/c4ep-ee5m.json?$where=date >= '", input$dateSelect[1], "T00:00:00' AND date <= '", input$dateSelect[2], "T23:59:59' AND primary_type= '", input$crimeSelect, "' AND domestic = '", input$domSelect, "'"), 
-                            app_token = token)
-      
-      # When multiple crimes selected
-    } else {
-      primary_desc_q <- paste0(input$crimeSelect, collapse = "' OR primary_type= '")
-      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/c4ep-ee5m.json?$where=date >= '", input$dateSelect[1], "T00:00:00' AND date <= '", input$dateSelect[2], "T23:59:59' AND (primary_type= '", primary_desc_q, "') AND domestic = '", input$domSelect, "'"), 
-                            app_token = token)
-    }
-    
-    # Subset and rename data
-    crime <- select(crime, primary_type, location_description, arrest, date)
-    colnames(crime) <- c("type", "locType", "arrest", "date")
-    
-    # Create separate date and time columns
-    crime$date <- as.factor(crime$date)
-    crime$time <- format(as.POSIXct(strptime(crime$date,"%Y-%m-%d %H:%M:%S",tz="")) ,format = "%H:%M")
-    crime$date <- mdy(format(as.POSIXct(strptime(crime$date,"%Y-%m-%d %H:%M:%S",tz="")) ,format = "%m/%d/%y"))
-    
-    crime$timeDay <- as.factor(ifelse(crime$time > "04:59:00" & crime$time <= "11:59:00", "morning",
-                                      ifelse(crime$time > "11:59:00" & crime$time <= "16:59:00", "afternoon",
-                                             ifelse(crime$time > "16:59:00" & crime$time <= "21:59:00", "evening", "night"))))
-    # Clean data
-    crime$type <- as.factor(tolower(crime$type))
-    crime$locType <- as.factor(tolower(crime$locType))
-    crime$arrest <- ifelse(crime$arrest == TRUE, 1, 0)
-    
-    if (input$timeSelect != "all") {
-      crime <- subset(crime, timeDay %in% input$timeSelect)
-    }
+    crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/3uz7-d32j.json?$where=date_of_occurrence between '2017-10-10T12:00:00' and '2018-01-10T14:00:00'&_primary_decsription=", input$crimeSelect, "&ARREST=Y&DOMESTIC=", input$domSelect), 
+                          app_token = token)
     return(crime)
   })
   # Reactive data for plot 2
@@ -303,8 +278,8 @@ server <- function(input, output, session = session) {
   observeEvent(input$reset, {
     updateSelectInput(session, "crimeSelect", selected = c(""))
     updateSelectInput(session, "timeSelect", selected = "all")
-    updateSelectInput(session, "domSelect", selected = "FALSE")
-    updateDateRangeInput(session, "dateSelect", start = Sys.Date() - 365, end = Sys.Date() - 335
+    updateSelectInput(session, "domSelect", selected = "No")
+    updateDateRangeInput(session, "dateSelect", start = min(crime$date), end = max(crime$date)
     )
     showNotification("You reset the filters. Gooooood Job", 
                      type = "message", 
