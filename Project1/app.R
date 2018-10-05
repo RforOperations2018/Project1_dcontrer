@@ -124,29 +124,56 @@ body <- dashboardBody(tabItems(
   )
   )
             )
+
 ui <- dashboardPage(header, sidebar, body)
+
 # Define server logic
 server <- function(input, output, session = session) {
   crimeInput <- reactive({
-    crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/3uz7-d32j.json?$where=date_of_occurrence between '2017-10-10T12:00:00' and '2018-01-10T14:00:00'&_primary_decsription=", input$crimeSelect, "&ARREST=Y&DOMESTIC=", input$domSelect), 
-                          app_token = token)
+    
+    # When no crimes selected
+    if (length(input$crimeSelect) == 0 ) {
+      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/c4ep-ee5m.json?$where=date >= '", input$dateSelect[1], "T00:00:00' AND date <= '", input$dateSelect[2], "T23:59:59' AND domestic = '", input$domSelect, "'"), 
+                            app_token = token)
+      
+      # When one crime selected
+    } else if (length(input$crimeSelect) == 1) {
+      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/c4ep-ee5m.json?$where=date >= '", input$dateSelect[1], "T00:00:00' AND date <= '", input$dateSelect[2], "T23:59:59' AND primary_type= '", input$crimeSelect, "' AND domestic = '", input$domSelect, "'"), 
+                            app_token = token)
+      
+      # When multiple crimes selected
+    } else {
+      primary_desc_q <- paste0(input$crimeSelect, collapse = "' OR primary_type= '")
+      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/c4ep-ee5m.json?$where=date >= '", input$dateSelect[1], "T00:00:00' AND date <= '", input$dateSelect[2], "T23:59:59' AND (primary_type= '", primary_desc_q, "') AND domestic = '", input$domSelect, "'"), 
+                            app_token = token)
+    }
+    
+    # Subset and rename data
+    crime <- select(crime, primary_type, location_description, arrest, date)
+    colnames(crime) <- c("type", "locType", "arrest", "date")
+    
+    # Create separate date and time columns
+    crime$date <- as.factor(crime$date)
+    crime$time <- format(as.POSIXct(strptime(crime$date,"%Y-%m-%d %H:%M:%S",tz="")) ,format = "%H:%M")
+    crime$date <- mdy(format(as.POSIXct(strptime(crime$date,"%Y-%m-%d %H:%M:%S",tz="")) ,format = "%m/%d/%y"))
+    
+    # Create time of day column
+    crime$timeDay <- as.factor(ifelse(crime$time > "04:59:00" & crime$time <= "11:59:00", "morning",
+                                      ifelse(crime$time > "11:59:00" & crime$time <= "16:59:00", "afternoon",
+                                             ifelse(crime$time > "16:59:00" & crime$time <= "21:59:00", "evening", "night"))))
+    
+    # Clean data
+    crime$type <- as.factor(tolower(crime$type))
+    crime$locType <- as.factor(tolower(crime$locType))
+    crime$arrest <- ifelse(crime$arrest == TRUE, 1, 0)
+    
+    # Subset data by time of day select
+    if (input$timeSelect != "all") {
+      crime <- subset(crime, timeDay %in% input$timeSelect)
+    }
     return(crime)
   })
-  # Reactive data for plot 2
-  # The melting and stuff doesn't really have to be done in a reactive function if you're only using it once.
-  mcInput <- reactive({
-    crimeInput() %>% 
-      count(type, arrest) %>%
-      group_by(type) %>%
-      mutate(freq = n / sum(n))
-  })
-  # Reactive data for plot 3
-  locInput <- reactive({
-    crimeInput() %>% 
-      group_by(type, locType) %>%
-      tally() %>%
-      top_n(10)
-  })
+  
   # Plot 1 - Crimes by Frequency
   output$plot_total <- renderPlotly({
     dat <- crimeInput()
