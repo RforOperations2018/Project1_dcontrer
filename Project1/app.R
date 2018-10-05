@@ -237,14 +237,20 @@ server <- function(input, output, session = session) {
   
   # Plot 3 - Location of Crimes
   output$plot_loc <- renderPlotly({
+    locInput <- reactive({
+      crimeInput() %>% 
+        group_by(type, locType) %>%
+        tally() %>%
+        top_n(10)
+    })
     dat <- locInput()
     ggplotly(
-      ggplot(data = dat, aes(x = reorder(locType, n), y = as.numeric(n),
-                             text = paste0("<b>", locType, "</b> ",
+      ggplot(data = dat, aes(x = reorder(locType, n), y = as.numeric(n), fill = type,
+                             text = paste0("<b>", type, "</b> ",
+                                           "<br>", locType, "</b> ",
                                            "<br>Crimes: ", n, "</b>"))) + 
         geom_bar(stat = "identity") + 
         coord_flip() +
-        facet_wrap(~type, ncol = 1, scales = "free") +
         labs(x = NULL,
              y = "Number of Reports",
              title = "Most Frequent Locations of Crimes") +
@@ -258,10 +264,11 @@ server <- function(input, output, session = session) {
                                           face = 'bold', 
                                           size = 12, 
                                           hjust = 0)) +
-        theme(legend.title=element_blank()) +  # tilts x-axis labels
+        theme(legend.title=element_blank()) + 
         guides(color = FALSE)
       , tooltip = "text")
   })
+  
   # Downloadable crime datatable
   output$table <- DT::renderDataTable({
     subset(crimeInput(), select = colnames(crimeInput()))
