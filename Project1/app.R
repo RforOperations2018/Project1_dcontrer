@@ -15,7 +15,7 @@ library(RSocrata)
 library(jsonlite)
 
 # read in app token
-token <- jsonlite::fromJSON("token.json")$token
+token <- jsonlite::fromJSON("token2.json")$token
 
 # generate unique list of crimes for use in input selectors
 selectDat <- read.socrata("https://data.cityofchicago.org/resource/3uz7-d32j.json?$select=_primary_decsription, date_of_occurrence",
