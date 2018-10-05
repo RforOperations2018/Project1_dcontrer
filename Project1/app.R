@@ -12,9 +12,12 @@ library(shinythemes)
 library(lubridate)
 library(shinyWidgets)
 library(RSocrata)
+library(jsonlite)
 
 # read in app token
-token <- "b8jsLEt63CZq5qAV4bvMXsqLi"
+# Refresh your token, and change the name of the json file I've made (token.json) and add it to your .gitignore file. Instructions: https://superuser.com/questions/991778/git-add-ignored-files-from-within-github-desktop
+token <- fromJSON("token.json")$token
+
 selectDat <- read.socrata("https://data.cityofchicago.org/resource/3uz7-d32j.json?$select=_primary_decsription, date_of_occurrence",
                           app_token = token)
 
