@@ -74,7 +74,10 @@ sidebar <- dashboardSidebar(
 
 # tab layout for plots
 body <- dashboardBody(tabItems(
+  
+  # Create page 1 (crimes)
   tabItem("plot",
+          
           # Name tabs
           fluidRow(
             valueBoxOutput("totalCrimes"),
@@ -83,21 +86,26 @@ body <- dashboardBody(tabItems(
           ),
           fluidRow(
             tabBox(width = 12,
+                   
                    # Layout and description of tab 1
                    tabPanel("Crimes by Frequency", 
                             HTML("<p><em>The graph below shows the frequency of a reported crime for the timeframe selected.&nbsp;</em></p>"),
                             plotlyOutput("plot_total")),
+                   
                    # Layout and description of tab 2
                    tabPanel("Percent Arrests by Crime",
                             HTML("<p><em>The graph below shows arrest rates for a reported crime for the time period selected. 
                                  The proportion of all crimes that resulted in arrests are shown 
-                                 in light blue and non-arrests in dark blue.&nbsp;</em></p>"),
+                                 in teal and non-arrests in pink.&nbsp;</em></p>"),
                             plotlyOutput("plot_line")))
             )
                    ),
+  
+  # Create page 2 (location)
   tabItem("loc",
           fluidRow(
             tabBox(width = 12, height = "800px",
+                   
                    # Layout and description of tab 3
                    tabPanel("Location of Crimes",
                             HTML("<p><em>The graph below shows the 10 most frequent locations of the crime(s) selected for the time period selected. </p>
@@ -105,7 +113,8 @@ body <- dashboardBody(tabItems(
                             plotlyOutput("plot_loc")))
             )
             ),
-  # Layout of table
+  
+  # Create page 3 (table)
   tabItem("table",
           inputPanel(
             downloadButton("downloadData","Download Crime Data") # add button to download table as csv
