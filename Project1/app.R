@@ -62,7 +62,7 @@ sidebar <- dashboardSidebar(
     # Date range
     dateRangeInput("dateSelect",
                    "Date Range:", 
-                   start = Sys.Date()-365, end = Sys.Date()-183, 
+                   start = Sys.Date()-38, end = Sys.Date()-7, 
                    min = "2001-01-01", max = Sys.Date()-7, 
                    format = "yyyy-mm-dd", startview = "month", weekstart = 0,
                    language = "en", separator = " to ", width = NULL),
@@ -108,8 +108,7 @@ body <- dashboardBody(tabItems(
                    
                    # Layout and description of tab 3
                    tabPanel("Location of Crimes",
-                            HTML("<p><em>The graph below shows the 10 most frequent locations of the crime(s) selected for the time period selected. </p>
-                                 <p>*Note that this chart is most informative when only 1 crime is selected.&nbsp;</em></p>"),
+                            HTML("<p><em>The graph below shows the 10 most frequent locations of the crime(s) selected for the time period selected.&nbsp;</em></p>"),
                             plotlyOutput("plot_loc")))
             )
             ),
@@ -319,7 +318,7 @@ server <- function(input, output, session = session) {
     updateSelectInput(session, "crimeSelect", selected = c(""))
     updateSelectInput(session, "timeSelect", selected = "all")
     updateSelectInput(session, "domSelect", selected = "TRUE")
-    updateDateRangeInput(session, "dateSelect", start = Sys.Date() - 365, end = Sys.Date() - 183
+    updateDateRangeInput(session, "dateSelect", start = Sys.Date() - 38, end = Sys.Date() - 7
     )
     showNotification("You reset the filters. You're the best around - and nothing's ever gonna take you down.", 
                      type = "message", 
