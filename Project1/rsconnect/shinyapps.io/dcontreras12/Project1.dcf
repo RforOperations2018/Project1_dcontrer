@@ -5,8 +5,8 @@ account: dcontreras12
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 463713
-bundleId: 1600043
+bundleId: 1625584
 url: https://dcontreras12.shinyapps.io/Project1/
-when: 1537652695.49666
+when: 1538762880.67356
 asMultiple: FALSE
 asStatic: FALSE
