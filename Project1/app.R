@@ -38,36 +38,40 @@ sidebar <- dashboardSidebar(
     menuItem("Crime Plots", icon = icon("bar-chart"), tabName = "plot"),
     menuItem("Location Data", icon = icon("location-arrow"), tabName = "loc"),
     menuItem("Download Data", icon = icon("download"), tabName = "table"),
+    
     # Crime select
     selectizeInput("crimeSelect", 
                    "Crimes:", 
                    choices = sort(crimes), 
                    multiple = TRUE,
-                   selected = crimes[1:5],
-                   options = list(placeholder = 'Select crime(s)',
-                                  maxItems = 4)),
-    # Domestic incidents (y/n)
+                   options = list(placeholder = 'Select crime(s)')),
+    
+    # Domestic incidents (T/F)
     selectizeInput("domSelect", 
                    "Limit to Domestic Incidents?", 
-                   choices = c("Y", "N"), 
+                   choices = c("TRUE", "FALSE"), 
                    multiple = FALSE,
-                   selected = "No"),
+                   selected = "TRUE"),
+    
     # Time of day
     radioButtons("timeSelect", 
                  "Time of Day:",
                  choices = c("morning", "afternoon", "evening", "night", "all"),
                  selected = "all"),
+    
     # Date range
     dateRangeInput("dateSelect",
                    "Date Range:", 
-                   start = dateMin, end = dateMax, 
-                   min = dateMin, max = dateMax, 
-                   format = "mm-dd-yyyy", startview = "month", weekstart = 0,
+                   start = Sys.Date()-365, end = Sys.Date()-183, 
+                   min = "2001-01-01", max = Sys.Date()-7, 
+                   format = "yyyy-mm-dd", startview = "month", weekstart = 0,
                    language = "en", separator = " to ", width = NULL),
+    
     # Action button to reset filters, keeping original icon b/c works well
     actionButton("reset", "Reset Filters", icon = icon("refresh")) 
   )
 )
+
 # tab layout for plots
 body <- dashboardBody(tabItems(
   tabItem("plot",
