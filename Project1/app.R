@@ -15,37 +15,14 @@ library(RSocrata)
 library(jsonlite)
 
 # read in app token
-# Refresh your token, and change the name of the json file I've made (token.json) and add it to your .gitignore file. Instructions: https://superuser.com/questions/991778/git-add-ignored-files-from-within-github-desktop
-token <- fromJSON("token.json")$token
-
-selectDat <- read.socrata("https://data.cityofchicago.org/resource/3uz7-d32j.json?$select=_primary_decsription, date_of_occurrence",
-                          app_token = token)
+token <- jsonlite::fromJSON("token.json")$token
 
 # generate unique list of crimes for use in input selectors
+selectDat <- read.socrata("https://data.cityofchicago.org/resource/3uz7-d32j.json?$select=_primary_decsription, date_of_occurrence",
+                          app_token = token)
 crimes <- as.character(unique(selectDat$X_primary_decsription))
-
-# generate min and max dates for date range selector input
-dateMin <- range(selectDat$date_of_occurrence, na.rm = T)[1]
-dateMax <- range(selectDat$date_of_occurrence, na.rm = T)[2]
 remove(selectDat)
 
-# read in data
-crime <- read.csv("http://www.sharecsv.com/dl/d4ece4993a52b02efb08a5ac800123f2/chicagoCrime.csv", header = T, sep = ",")
-crime <- select(crime, PRIMARY.DESCRIPTION, LOCATION.DESCRIPTION, ARREST, DOMESTIC, DATE..OF.OCCURRENCE)
-colnames(crime) <- c("type", "locType", "arrest", "domestic", "date")
-# format time and date columns
-crime$time <- format(as.POSIXct(strptime(crime$date,"%m/%d/%Y %H:%M",tz="")) ,format = "%H:%M")
-crime$date <- mdy(format(as.POSIXct(strptime(crime$date,"%m/%d/%Y %H:%M",tz="")) ,format = "%m/%d/%y"))
-# create time of day column
-crime$timeDay <- as.factor(ifelse(crime$time > "04:59:00" & crime$time <= "11:59:00", "morning",
-                                  ifelse(crime$time > "11:59:00" & crime$time <= "16:59:00", "afternoon",
-                                         ifelse(crime$time > "16:59:00" & crime$time <= "21:59:00", "evening", "night"))))
-# clean data
-crime$type <- as.factor(tolower(crime$type))
-crime$locType <- as.factor(tolower(crime$locType))
-crime$arrest <- ifelse(crime$arrest == "Y", 1, 0)
-crime$domestic <- ifelse(crime$domestic == "Y", 1, 0)
-pdf(NULL)
 # title + data source notification
 header <- dashboardHeader(title = "Chicago Crime Stats",
                           dropdownMenu(type = "notifications",
