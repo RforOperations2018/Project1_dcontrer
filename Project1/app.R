@@ -273,24 +273,28 @@ server <- function(input, output, session = session) {
   output$table <- DT::renderDataTable({
     subset(crimeInput(), select = colnames(crimeInput()))
   })
+  
   # Total crimes infobox
   output$totalCrimes <- renderValueBox({
     cr <- crimeInput()
     num <- nrow(cr)
     valueBox(subtitle = "Total crimes during this timeframe", value = num, icon = icon("balance-scale"), color = "red")
   })
+  
   # Percent arrests infobox
   output$pctSolved <- renderValueBox({
     cr <- crimeInput()
     num <- round(mean(cr$arrest), digits = 2)*100
     valueBox(subtitle = "Percent resulted in arrests", value = num, icon = icon("lock"), color = "blue")
   })
+  
   # Most common crime infobox
   output$mostCommon <- renderValueBox({
     cr <- crimeInput()
     name <- names(sort(table(cr$type), decreasing = TRUE)[1])
     valueBox(subtitle = "Was the most common crime", value = name, icon = icon("fa fa-user-circle-o"), color = "green")
   })
+  
   # URL bar update
   observe({
     print(reactiveValuesToList(input))
@@ -299,6 +303,7 @@ server <- function(input, output, session = session) {
   onBookmarked(function(url) {
     updateQueryString(url)
   })
+  
   # Make data downloadable and set default download name
   output$downloadData <- downloadHandler(
     filename = function() {
@@ -308,18 +313,20 @@ server <- function(input, output, session = session) {
       write.csv(crimeInput(), file)
     }
   )
+  
   # Reset Filter Data
   observeEvent(input$reset, {
     updateSelectInput(session, "crimeSelect", selected = c(""))
     updateSelectInput(session, "timeSelect", selected = "all")
-    updateSelectInput(session, "domSelect", selected = "No")
-    updateDateRangeInput(session, "dateSelect", start = min(crime$date), end = max(crime$date)
+    updateSelectInput(session, "domSelect", selected = "TRUE")
+    updateDateRangeInput(session, "dateSelect", start = Sys.Date() - 365, end = Sys.Date() - 183
     )
-    showNotification("You reset the filters. Gooooood Job", 
+    showNotification("You reset the filters. You're the best around - and nothing's ever gonna take you down.", 
                      type = "message", 
                      duration = 3, 
                      closeButton = F)
   })
 }
+
 # Run the application 
 shinyApp(ui = ui, server = server)
