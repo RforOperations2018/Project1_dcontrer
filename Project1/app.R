@@ -14,7 +14,6 @@ library(shinyWidgets)
 library(RSocrata)
 
 # read in app token
-# AHHH NOOO, please save this as an enviornmental variable or in a separate file
 token <- "b8jsLEt63CZq5qAV4bvMXsqLi"
 selectDat <- read.socrata("https://data.cityofchicago.org/resource/3uz7-d32j.json?$select=_primary_decsription, date_of_occurrence",
                           app_token = token)
@@ -136,26 +135,8 @@ ui <- dashboardPage(header, sidebar, body)
 # Define server logic
 server <- function(input, output, session = session) {
   crimeInput <- reactive({
-    # No Crimes Selected
-    if (length(input$crimeSelect) == 0 ) {
-      # I didn't fix this one either
-      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/3uz7-d32j.json?$where=date_of_occurrence between '2017-10-10T12:00:00' and '2018-01-10T14:00:00'&ARREST=Y&DOMESTIC=", input$domSelect), 
-                            app_token = token)
-    # One Crime Selected
-      # I did not fix this one
-    } else if (length(input$crimeSelect) == 1) {
-      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/3uz7-d32j.json?$where=date_of_occurrence between '2017-10-10T12:00:00' and '2018-01-10T14:00:00'&_primary_decsription=", input$crimeSelect, "&ARREST=Y&DOMESTIC=", input$domSelect), 
-                            app_token = token)
-    # Multiple Crimes Selected
-    } else {
-      # I did get this one to work
-      # For teststing: 
-      # input$crimeSelect <- crimes[1:5]
-      primary_desc_q <- paste0(input$crimeSelect, collapse = "' OR primary_type= '")
-      crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/c4ep-ee5m.json?$where=date >= '2017-10-10T12:00:00' AND date <= '2018-01-10T14:00:00' AND (primary_type= '", primary_desc_q, "') AND arrest = TRUE AND domestic = '", input$domSelect, "'"), 
-                            app_token = token)
-    }
-    
+    crime <- read.socrata(paste0("https://data.cityofchicago.org/resource/3uz7-d32j.json?$where=date_of_occurrence between '2017-10-10T12:00:00' and '2018-01-10T14:00:00'&_primary_decsription=", input$crimeSelect, "&ARREST=Y&DOMESTIC=", input$domSelect), 
+                          app_token = token)
     return(crime)
   })
   # Reactive data for plot 2
