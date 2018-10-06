@@ -277,6 +277,7 @@ server <- function(input, output, session = session) {
   output$totalCrimes <- renderValueBox({
     cr <- crimeInput()
     num <- nrow(cr)
+    # In the future you might want to use prettyNum() to put the thousands commas
     valueBox(subtitle = "Total crimes during this timeframe", value = num, icon = icon("balance-scale"), color = "red")
   })
   
